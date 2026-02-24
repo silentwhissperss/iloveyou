@@ -1,0 +1,1883 @@
+﻿    <!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Project: Love Capsule</title>
+  <link rel="icon" type="image/png" href="files/Heart.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=VT323&display=swap" rel="stylesheet">
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg: #0a0a0a;
+      --box-bg: rgba(18, 18, 18, 0.85);
+      --border: #4a4a4a;
+      --text: #e0e0e0;
+      --wrong: #cc3333;
+      --heart-red: #e63950;
+      --site-saturation: 1.4;
+    }
+
+    html {
+      min-height: 100%;
+      height: 100%;
+      overflow: hidden;
+      cursor: url('files/Cursor.cur'), auto;
+    }
+
+    input, textarea, [contenteditable="true"], .text-content {
+      cursor: url('files/TextSelect.cur') 4 4, text !important;
+    }
+
+    a, a:hover, a:active, a:focus,
+    button, button:hover, button:active, button:focus,
+    [role="button"], [role="button"]:hover, [role="button"]:active, [role="button"]:focus,
+    .file-item, .file-item:hover, .album-file-item, .album-file-item:hover,
+    .orbit-item, .orbit-item:hover, .music-player-btn, .music-player-btn:hover {
+      cursor: url('files/Select.cur') 4 4, pointer !important;
+    }
+
+    body {
+      min-height: 100vh;
+      height: 100%;
+      background: var(--bg);
+      font-family: 'VT323', monospace;
+      color: var(--text);
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      filter: saturate(var(--site-saturation));
+    }
+
+    /* Cursor glow */
+    .cursor-glow {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 120px;
+      height: 120px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(230, 57, 80, 0.15) 0%, transparent 70%);
+      pointer-events: none;
+      transform: translate(-50%, -50%);
+      z-index: 9999;
+      transition: opacity 0.15s ease;
+    }
+
+    /* Heart snow container - cover full viewport */
+    .snow-wrap {
+      position: fixed;
+      left: 0;
+      top: 0;
+      width: 100vw;
+      height: 100vh;
+      min-width: 100%;
+      min-height: 100%;
+      z-index: 0;
+      overflow: hidden;
+    }
+
+    .heart-flake {
+      position: absolute;
+      color: rgba(255, 255, 255, 0.35);
+      font-size: clamp(10px, 2vw, 18px);
+      animation: fall linear infinite;
+      pointer-events: none;
+      user-select: none;
+    }
+
+    @keyframes fall {
+      from { transform: translateY(-10vh) rotate(0deg); }
+      to { transform: translateY(110vh) rotate(360deg); }
+    }
+
+    /* Scaled pop-out box */
+    .box-wrap {
+      position: relative;
+      z-index: 2;
+      transform: scale(calc(min(1, 90vw / 520) * min(1, 85vh / 420)));
+      transform-origin: center;
+    }
+
+    .pop-box {
+      width: min(520px, 92vw);
+      min-width: 280px;
+      padding: clamp(24px, 5vw, 40px);
+      background: var(--box-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      resize: none;
+      box-shadow:
+        0 0 0 1px rgba(255, 255, 255, 0.03),
+        0 25px 50px -12px rgba(0, 0, 0, 0.8),
+        0 0 80px -20px rgba(230, 57, 80, 0.2);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      transition: opacity 0.6s ease;
+    }
+
+    .pop-box.fade-out {
+      opacity: 0;
+      pointer-events: none;
+    }
+
+    /* ASCII title - scale to stay inside pop-box */
+    .ascii-title-wrap {
+      width: 100%;
+      overflow: hidden;
+      margin-bottom: 20px;
+      position: relative;
+    }
+
+    .ascii-title {
+      font-family: 'VT323', monospace;
+      font-size: 12px;
+      line-height: 1.35;
+      text-align: center;
+      white-space: pre;
+      color: #fff;
+      text-shadow:
+        -1px -1px 0 var(--border),
+        1px -1px 0 var(--border),
+        -1px 1px 0 var(--border),
+        1px 1px 0 var(--border);
+      letter-spacing: 0;
+      display: block;
+      transform-origin: top center;
+      position: absolute;
+      left: 50%;
+    }
+
+    /* Password row */
+    .password-row {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .password-input {
+      width: 100%;
+      max-width: 260px;
+      padding: 12px 16px;
+      background: #0a0a0a;
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-family: 'VT323', monospace;
+      font-size: 20px;
+      letter-spacing: 1px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
+
+    .password-input::placeholder {
+      color: #666;
+    }
+
+    .password-input:focus {
+      border-color: #6a6a6a;
+    }
+
+    .message-row {
+      min-height: 24px;
+      text-align: center;
+    }
+
+    .wrong-msg {
+      font-size: 14px;
+      color: var(--wrong);
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .wrong-msg .hint-link {
+      text-decoration: underline;
+    }
+
+    /* Success heart */
+    .success-heart {
+      position: fixed;
+      inset: 0;
+      z-index: 5;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-direction: column;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.8s ease;
+    }
+
+    .success-heart.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .success-heart.pre-orbit {
+      pointer-events: none;
+    }
+
+    .success-heart pre {
+      font-family: 'VT323', monospace;
+      font-size: clamp(14px, 3.5vw, 22px);
+      color: var(--heart-red);
+      text-shadow: 0 0 20px rgba(230, 57, 80, 0.5);
+      transition: transform 0.5s ease, opacity 0.5s ease;
+    }
+
+    .success-heart pre.flash-off {
+      opacity: 0;
+    }
+
+    .success-heart pre.explode {
+      transform: scale(2.5);
+      opacity: 0;
+    }
+
+    .skip-flash-btn {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      padding: 10px 24px;
+      background: rgba(30, 30, 30, 0.9);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      color: var(--text);
+      font-family: 'VT323', monospace;
+      font-size: 18px;
+      cursor: pointer;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .skip-flash-btn.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .music-player-wrap {
+      position: fixed;
+      left: 50%;
+      bottom: 16px;
+      transform: translateX(-50%);
+      z-index: 8;
+      width: min(92vw, 420px);
+      padding: 10px 12px;
+      border: 1px solid rgba(230, 57, 80, 0.45);
+      border-radius: 10px;
+      background: linear-gradient(180deg, rgba(28, 14, 18, 0.94), rgba(14, 14, 14, 0.94));
+      box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+
+    .music-player-wrap.visible {
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .music-player-title {
+      display: block;
+      margin-bottom: 8px;
+      font-size: 16px;
+      color: var(--heart-red);
+      text-align: center;
+    }
+
+    .music-player-wrap audio {
+      width: 100%;
+      border-radius: 8px;
+      background: rgba(8, 8, 8, 0.92);
+      border: 1px solid rgba(230, 57, 80, 0.35);
+    }
+
+    .music-player-controls {
+      display: flex;
+      gap: 8px;
+      justify-content: center;
+      margin-bottom: 8px;
+    }
+
+    .music-player-btn {
+      border: 1px solid rgba(230, 57, 80, 0.45);
+      background: rgba(24, 16, 18, 0.95);
+      color: var(--text);
+      border-radius: 6px;
+      padding: 4px 10px;
+      font-family: 'VT323', monospace;
+      font-size: 16px;
+      cursor: pointer;
+      transition: background 0.2s ease, border-color 0.2s ease;
+    }
+
+    .music-player-btn:hover:not(:disabled) {
+      background: rgba(230, 57, 80, 0.2);
+      border-color: rgba(230, 57, 80, 0.75);
+    }
+
+    .music-player-btn:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+
+    .music-player-empty {
+      color: #888;
+      text-align: center;
+      font-size: 14px;
+      padding: 6px 0;
+    }
+
+    /* Orbit hub */
+    .orbit-hub {
+      position: fixed;
+      inset: 0;
+      z-index: 6;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.8s ease;
+    }
+
+    .orbit-hub.visible {
+      display: flex;
+      opacity: 1;
+    }
+
+    /* Single wrapper so year text and orbit share the exact same center */
+    .orbit-center-wrapper {
+      position: fixed;
+      left: 50%;
+      top: 50%;
+      width: min(100vmin, 480px);
+      height: min(100vmin, 480px);
+      transform: translate(
+        calc(-50% + var(--orbit-parallax-x, 0px)),
+        calc(-50% + var(--orbit-parallax-y, 0px))
+      );
+      pointer-events: none;
+    }
+
+    .orbit-center-wrapper .orbit-ring .orbit-item {
+      pointer-events: auto;
+    }
+
+    .orbit-center {
+      position: absolute;
+      left: 50%;
+      top: 50%;
+      transform: translate(-50%, -50%);
+      text-align: center;
+      font-size: clamp(20px, 4vw, 32px);
+      color: var(--text);
+      z-index: 2;
+      pointer-events: none;
+    }
+
+    .orbit-center .year-range {
+      display: block;
+      margin-bottom: 8px;
+    }
+
+    .orbit-center .countdown-text {
+      font-size: clamp(14px, 2.5vw, 20px);
+      color: var(--heart-red);
+    }
+
+    .orbit-ring {
+      position: absolute;
+      left: 0;
+      top: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .orbit-item {
+      position: absolute;
+      width: 56px;
+      height: 56px;
+      margin-left: -28px;
+      margin-top: -28px;
+      left: 50%;
+      top: 0;
+      transform-origin: 50% calc(min(50vmin, 240px) + 28px);
+      cursor: pointer;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-decoration: none;
+      color: var(--heart-red);
+      transition: transform 0.2s ease;
+      background: none;
+      border: none;
+      padding: 0;
+    }
+
+    .orbit-item:hover {
+      transform: scale(1.15);
+    }
+
+    .orbit-item .heart-emoji {
+      position: relative;
+      display: inline-block;
+      font-size: 48px;
+      filter: drop-shadow(0 0 12px rgba(230, 57, 80, 0.8));
+      line-height: 1;
+      animation: heart-glow-pulse 2.6s ease-in-out infinite;
+    }
+
+    .orbit-item .heart-emoji::after {
+      content: "\2764\FE0F";
+      position: absolute;
+      left: 0;
+      top: 0;
+      transform: translate(-4px, 2px) scale(0.96);
+      opacity: 0.22;
+      filter: blur(1.4px);
+      pointer-events: none;
+      animation: heart-trail-pulse 2.6s ease-in-out infinite;
+    }
+
+    .orbit-item .orbit-label {
+      font-family: 'VT323', monospace;
+      font-size: 16px;
+      margin-top: 12px;
+      white-space: nowrap;
+      color: var(--text);
+      text-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
+    }
+
+    .orbit-item-inner {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .orbit-item:nth-child(1) { transform: rotate(0deg); }
+    .orbit-item:nth-child(1) .heart-emoji,
+    .orbit-item:nth-child(1) .heart-emoji::after { animation-delay: 0s; }
+    .orbit-item:nth-child(1):hover { transform: rotate(0deg) scale(1.15); }
+    .orbit-item:nth-child(2) { transform: rotate(90deg); }
+    .orbit-item:nth-child(2) .heart-emoji,
+    .orbit-item:nth-child(2) .heart-emoji::after { animation-delay: 0.35s; }
+    .orbit-item:nth-child(2):hover { transform: rotate(90deg) scale(1.15); }
+    .orbit-item:nth-child(3) { transform: rotate(180deg); }
+    .orbit-item:nth-child(3) .heart-emoji,
+    .orbit-item:nth-child(3) .heart-emoji::after { animation-delay: 0.7s; }
+    .orbit-item:nth-child(3):hover { transform: rotate(180deg) scale(1.15); }
+    .orbit-item:nth-child(4) { transform: rotate(270deg); }
+    .orbit-item:nth-child(4) .heart-emoji,
+    .orbit-item:nth-child(4) .heart-emoji::after { animation-delay: 1.05s; }
+    .orbit-item:nth-child(4):hover { transform: rotate(270deg) scale(1.15); }
+
+    @keyframes heart-glow-pulse {
+      0%, 100% { filter: drop-shadow(0 0 10px rgba(230, 57, 80, 0.65)); }
+      50% { filter: drop-shadow(0 0 16px rgba(230, 57, 80, 0.95)); }
+    }
+
+    @keyframes heart-trail-pulse {
+      0%, 100% { opacity: 0.16; transform: translate(-3px, 2px) scale(0.95); }
+      50% { opacity: 0.3; transform: translate(-5px, 3px) scale(0.97); }
+    }
+    .nav-page-btn {
+      position: fixed;
+      top: 50%;
+      transform: translateY(-50%);
+      z-index: 7;
+      width: 48px;
+      height: 48px;
+      border: none;
+      border-radius: 50%;
+      background: rgba(30, 30, 30, 0.8);
+      color: var(--text);
+      font-size: 24px;
+      cursor: pointer;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      transition: opacity 0.3s, background 0.2s;
+    }
+
+    .orbit-hub.visible ~ .nav-page-prev,
+    .orbit-hub.visible ~ .nav-page-next {
+      display: flex;
+    }
+
+    .nav-page-prev { left: 16px; }
+    .nav-page-next { right: 16px; }
+
+    .nav-page-btn:hover {
+      background: rgba(230, 57, 80, 0.3);
+    }
+
+    .nav-page-btn:disabled {
+      opacity: 0.3;
+      cursor: not-allowed;
+    }
+
+    /* File modal */
+    .file-modal-backdrop {
+      position: fixed;
+      inset: 0;
+      z-index: 20;
+      background: rgba(0, 0, 0, 0.75);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      transition: opacity 0.3s ease;
+    }
+
+    .file-modal-backdrop.visible {
+      display: flex;
+      opacity: 1;
+    }
+
+    .file-modal {
+      width: min(90vw, 560px);
+      max-height: 80vh;
+      background: var(--box-bg);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 24px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.5);
+    }
+
+    .file-modal h3 {
+      margin-bottom: 16px;
+      color: var(--text);
+      font-size: 22px;
+    }
+
+    .file-modal-list {
+      overflow-y: auto;
+      flex: 1;
+      min-height: 120px;
+    }
+
+    .file-modal-list {
+      display: block;
+    }
+
+    .file-modal-list.hidden {
+      display: none;
+    }
+
+    .file-modal-list .file-item {
+      display: block;
+      width: 100%;
+      padding: 10px 0;
+      color: var(--heart-red);
+      text-decoration: none;
+      text-align: left;
+      background: none;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      font-family: 'VT323', monospace;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .file-modal-list .file-item:hover {
+      text-decoration: underline;
+    }
+
+    .album-file-list {
+      display: block;
+    }
+
+    .album-file-list .album-file-item {
+      display: block;
+      width: 100%;
+      padding: 10px 0;
+      color: var(--heart-red);
+      text-decoration: none;
+      text-align: left;
+      background: none;
+      border: none;
+      border-bottom: 1px solid var(--border);
+      font-family: 'VT323', monospace;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    .album-file-list .album-file-item:hover {
+      text-decoration: underline;
+    }
+
+    .file-modal-viewer {
+      display: none;
+      flex: 1;
+      flex-direction: column;
+      overflow: hidden;
+      min-height: 0;
+    }
+
+    .file-modal-viewer.visible {
+      display: flex;
+    }
+
+    .file-modal-viewer .viewer-toolbar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 12px;
+      flex-shrink: 0;
+    }
+
+    .file-modal-viewer .viewer-back {
+      padding: 6px 14px;
+      background: var(--border);
+      border: none;
+      border-radius: 6px;
+      color: var(--text);
+      font-family: 'VT323', monospace;
+      font-size: 16px;
+      cursor: pointer;
+    }
+
+    .file-modal-viewer .viewer-content {
+      flex: 1;
+      overflow: auto;
+      min-height: 120px;
+      background: rgba(0, 0, 0, 0.3);
+      border-radius: 8px;
+      padding: 16px;
+    }
+
+    .file-modal-viewer .viewer-content.text-content {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 16px;
+      line-height: 1.5;
+      color: var(--text);
+    }
+
+    .file-modal-viewer .viewer-content img {
+      max-width: 100%;
+      height: auto;
+      display: block;
+      border-radius: 4px;
+    }
+
+    .file-modal-viewer .viewer-content video {
+      max-width: 100%;
+      width: 100%;
+      background: transparent;
+      border: 1px solid var(--border);
+      border-radius: 4px;
+    }
+
+    .anniversary-text-content {
+      white-space: pre-wrap;
+      word-break: break-word;
+      font-size: 16px;
+      line-height: 1.5;
+      color: var(--text);
+      min-height: 120px;
+    }
+
+    .anniversary-audio-wrap {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid var(--border);
+    }
+
+    .anniversary-audio-label {
+      display: block;
+      margin-bottom: 8px;
+      color: var(--heart-red);
+      font-size: 16px;
+    }
+
+    .anniversary-audio-wrap audio {
+      width: 100%;
+      border-radius: 8px;
+      background: rgba(8, 8, 8, 0.92);
+      border: 1px solid rgba(230, 57, 80, 0.35);
+    }
+
+    .music-player-wrap audio::-webkit-media-controls-panel,
+    .anniversary-audio-wrap audio::-webkit-media-controls-panel {
+      background: linear-gradient(180deg, rgba(26, 16, 18, 0.98), rgba(12, 12, 12, 0.98));
+    }
+
+    .music-player-wrap audio::-webkit-media-controls-current-time-display,
+    .music-player-wrap audio::-webkit-media-controls-time-remaining-display,
+    .anniversary-audio-wrap audio::-webkit-media-controls-current-time-display,
+    .anniversary-audio-wrap audio::-webkit-media-controls-time-remaining-display {
+      color: #f2f2f2;
+      text-shadow: none;
+    }
+
+    .music-player-wrap audio::-webkit-media-controls-play-button,
+    .music-player-wrap audio::-webkit-media-controls-mute-button,
+    .anniversary-audio-wrap audio::-webkit-media-controls-play-button,
+    .anniversary-audio-wrap audio::-webkit-media-controls-mute-button {
+      filter: sepia(1) saturate(4) hue-rotate(325deg) brightness(1.05);
+    }
+
+    .music-player-wrap audio,
+    .anniversary-audio-wrap audio,
+    .file-modal-viewer .viewer-content video,
+    .music-player-wrap audio::-webkit-media-controls-enclosure,
+    .music-player-wrap audio::-webkit-media-controls-panel,
+    .music-player-wrap audio::-webkit-media-controls-play-button,
+    .music-player-wrap audio::-webkit-media-controls-mute-button,
+    .music-player-wrap audio::-webkit-media-controls-timeline,
+    .music-player-wrap audio::-webkit-media-controls-volume-slider,
+    .anniversary-audio-wrap audio::-webkit-media-controls-enclosure,
+    .anniversary-audio-wrap audio::-webkit-media-controls-panel,
+    .anniversary-audio-wrap audio::-webkit-media-controls-play-button,
+    .anniversary-audio-wrap audio::-webkit-media-controls-mute-button,
+    .anniversary-audio-wrap audio::-webkit-media-controls-timeline,
+    .anniversary-audio-wrap audio::-webkit-media-controls-volume-slider,
+    .file-modal-viewer .viewer-content video::-webkit-media-controls-enclosure,
+    .file-modal-viewer .viewer-content video::-webkit-media-controls-panel,
+    .file-modal-viewer .viewer-content video::-webkit-media-controls-play-button,
+    .file-modal-viewer .viewer-content video::-webkit-media-controls-mute-button,
+    .file-modal-viewer .viewer-content video::-webkit-media-controls-timeline,
+    .file-modal-viewer .viewer-content video::-webkit-media-controls-volume-slider {
+      cursor: url('files/Select.cur') 4 4, pointer !important;
+    }
+
+    .file-modal-close {
+      margin-top: 16px;
+      padding: 10px 20px;
+      background: var(--border);
+      border: none;
+      border-radius: 6px;
+      color: var(--text);
+      font-family: 'VT323', monospace;
+      font-size: 18px;
+      cursor: pointer;
+    }
+
+    @media (max-width: 900px), (max-height: 760px) {
+      .box-wrap {
+        transform: scale(calc(min(1, 94vw / 520) * min(1, 88dvh / 420)));
+      }
+
+      .orbit-center-wrapper {
+        width: min(92vmin, 420px);
+        height: min(92vmin, 420px);
+      }
+
+      .orbit-center {
+        font-size: clamp(18px, 5vw, 28px);
+      }
+
+      .orbit-center .countdown-text {
+        font-size: clamp(13px, 3.3vw, 18px);
+      }
+
+      .orbit-item {
+        width: 52px;
+        height: 52px;
+        margin-left: -26px;
+        margin-top: -26px;
+        transform-origin: 50% calc(min(46vmin, 210px) + 26px);
+      }
+
+      .orbit-item .heart-emoji {
+        font-size: 42px;
+      }
+
+      .orbit-item .orbit-label {
+        font-size: 14px;
+        margin-top: 10px;
+      }
+
+      .nav-page-btn {
+        width: 56px;
+        height: 56px;
+        font-size: 26px;
+        top: auto;
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 14px);
+        transform: none;
+      }
+
+      .nav-page-prev { left: 12px; }
+      .nav-page-next { right: 12px; }
+
+      .music-player-wrap {
+        width: min(96vw, 520px);
+        bottom: calc(env(safe-area-inset-bottom, 0px) + 8px);
+        padding: 10px;
+      }
+
+      .music-player-btn {
+        min-height: 40px;
+        min-width: 64px;
+      }
+
+      .file-modal {
+        width: 95vw;
+        max-height: 88dvh;
+        padding: 14px;
+      }
+
+      .file-modal h3 {
+        font-size: 20px;
+        margin-bottom: 12px;
+      }
+
+      .file-modal-viewer .viewer-content {
+        padding: 12px;
+      }
+
+      .file-modal-viewer .viewer-back,
+      .file-modal-close,
+      .file-modal-list .file-item,
+      .album-file-list .album-file-item {
+        min-height: 42px;
+      }
+
+      .file-modal-list .file-item,
+      .album-file-list .album-file-item {
+        padding: 12px 2px;
+        font-size: 20px;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .pop-box {
+        min-width: 0;
+        width: 94vw;
+        padding: 18px;
+      }
+
+      .ascii-title {
+        font-size: 10px;
+      }
+    }
+
+    /* Mobile: show default cursor on touch */
+    @media (hover: none) {
+      html { cursor: auto; }
+      .cursor-glow { display: none; }
+    }
+  </style>
+</head>
+<body>
+  <div class="cursor-glow" id="cursorGlow" aria-hidden="true"></div>
+
+  <div class="snow-wrap" id="snowWrap" aria-hidden="true"></div>
+
+  <div class="box-wrap">
+    <div class="pop-box" id="popBox">
+      <div class="ascii-title-wrap">
+        <pre class="ascii-title" aria-label="Project Love Machine">
+                        88""Yb 88""Yb  dP"Yb   88888 888888  dP""b8 888888 .o.                      
+                        88__dP 88__dP dP   Yb     88 88__   dP   `"   88   `"'                      
+                        88"""  88"Yb  Yb   dP o.  88 88""   Yb        88   .o.                      
+      88     88  Yb  YbodP  "bodP' 888888  YboodP   88   `"'   
+
+88      dP"Yb  Yb    dP 888888      dP""b8    db    88""Yb .dP"Y8 88   88 88     888888 
+88     dP   Yb  Yb  dP  88__       dP   `"   dPYb   88__dP `Ybo." 88   88 88     88__   
+88  .o Yb   dP   YbdP   88""       Yb       dP__Yb  88"""  o.`Y8b Y8   8P 88  .o 88""   
+88ood8  YbodP     YP    888888      YboodP dP""""Yb 88     8bodP' `YbodP' 88ood8 888888 
+        </pre>
+      </div>
+
+      <form class="password-row" id="passwordForm" novalidate>
+        <input
+          type="password"
+          class="password-input"
+          id="passwordInput"
+          placeholder="password."
+          autocomplete="off"
+          aria-label="Password"
+        >
+        <div class="message-row" id="messageRow">
+          <span class="wrong-msg" id="wrongMsg" role="button" tabindex="0" aria-label="Wrong password hint"></span>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <div class="success-heart" id="successHeart" aria-hidden="true">
+    <pre class="success-heart-art">             
+      .....           .....
+  ,ad8PPPP88b,     ,d88PPPP8ba,
+ d8P"      "Y8b, ,d8P"      "Y8b
+dP'           "8a8"           `Yd
+8(              "              )8
+I8                             8I
+ Yb,                         ,dP
+  "8a,                     ,a8"
+    "8a,                 ,a8"
+      "Yba             adP"   
+        `Y8a         a8P'
+          `88,     ,88'
+            "8b   d8"
+             "8b d8"
+              `888'
+                "</pre>
+  </div>
+
+  <button type="button" class="skip-flash-btn" id="skipFlashBtn" aria-label="Skip">Skip</button>
+
+  <div class="orbit-hub" id="orbitHub">
+    <div class="orbit-center-wrapper">
+      <div class="orbit-center" id="orbitCenter">
+        <span class="year-range" id="yearRangeText">2025 - 2026</span>
+        <span class="countdown-text" id="countdownText"></span>
+      </div>
+      <div class="orbit-ring" id="orbitRing">
+      <button type="button" class="orbit-item" data-category="texts" aria-label="Texts"><span class="orbit-item-inner"><span class="heart-emoji">&#10084;&#65039;</span><span class="orbit-label">Texts</span></span></button>
+      <button type="button" class="orbit-item" data-category="screenshots" aria-label="Screenshots"><span class="orbit-item-inner"><span class="heart-emoji">&#10084;&#65039;</span><span class="orbit-label">Screenshots</span></span></button>
+      <button type="button" class="orbit-item" data-category="videos" aria-label="Videos"><span class="orbit-item-inner"><span class="heart-emoji">&#10084;&#65039;</span><span class="orbit-label">Videos</span></span></button>
+      <button type="button" class="orbit-item" data-category="anniversary" aria-label="My Anniversary Text"><span class="orbit-item-inner"><span class="heart-emoji">&#10084;&#65039;</span><span class="orbit-label">My Anniversary Text</span></span></button>
+    </div>
+    </div>
+  </div>
+
+  <button type="button" class="nav-page-btn nav-page-prev" id="navPrev" aria-label="Previous year">&#8249;</button>
+  <button type="button" class="nav-page-btn nav-page-next" id="navNext" aria-label="Next year">&#8250;</button>
+
+  <div class="file-modal-backdrop" id="fileModalBackdrop">
+    <div class="file-modal">
+      <h3 id="fileModalTitle">Files</h3>
+      <div class="file-modal-list" id="fileModalList"></div>
+      <div class="file-modal-viewer" id="fileModalViewer">
+        <div class="viewer-toolbar">
+          <button type="button" class="viewer-back" id="viewerBackBtn">Back to list</button>
+        </div>
+        <div class="viewer-content" id="viewerContent"></div>
+      </div>
+      <button type="button" class="file-modal-close" id="fileModalClose">Close</button>
+    </div>
+  </div>
+
+  <audio id="keySound" preload="auto">
+    <source src="C:\Users\z--\Desktop\1y\SFX\KeyClicks.mp3" type="audio/mpeg">
+  </audio>
+
+  <div class="music-player-wrap" id="musicPlayerWrap" aria-label="Music player">
+    <span class="music-player-title">Now Playing</span>
+    <div class="music-player-controls">
+      <button type="button" class="music-player-btn" id="musicPrevBtn" aria-label="Previous song">Prev</button>
+      <button type="button" class="music-player-btn" id="musicNextBtn" aria-label="Next song">Next</button>
+    </div>
+    <audio id="musicPlayer" controls preload="metadata"></audio>
+    <div class="music-player-empty" id="musicPlayerEmpty">No songs added yet. Add file paths in the code.</div>
+  </div>
+
+  <script>
+    (function () {
+      var DEFAULT_TAB_TITLE = 'Project: Love Capsule';
+      var BLUR_TAB_TITLE = 'I Love You!';
+      const PASSWORD_OPTIONS = ['25/2/2025', '25/02/2025'];
+
+      const popBox = document.getElementById('popBox');
+      const passwordInput = document.getElementById('passwordInput');
+      const messageRow = document.getElementById('messageRow');
+      const wrongMsg = document.getElementById('wrongMsg');
+      const successHeart = document.getElementById('successHeart');
+      const keySound = document.getElementById('keySound');
+      const cursorGlow = document.getElementById('cursorGlow');
+      const snowWrap = document.getElementById('snowWrap');
+      const musicPlayerWrap = document.getElementById('musicPlayerWrap');
+      const musicPlayer = document.getElementById('musicPlayer');
+      const musicPlayerEmpty = document.getElementById('musicPlayerEmpty');
+      const musicPrevBtn = document.getElementById('musicPrevBtn');
+      const musicNextBtn = document.getElementById('musicNextBtn');
+      const MUSIC_PLAYLIST = [
+        'music/song1.mp3',
+        'music/song2.mp3',
+        'music/song3.mp3',
+        'music/song4.mp3',
+        'music/song5.mp3',
+        'music/song6.mp3',
+        'music/song7.mp3',
+        'music/song8.mp3',
+        'music/song9.mp3',
+        'music/song10.mp3',
+      ];
+      const AUDIO_FADE_MS = 350;
+      const AUDIO_FADE_STEP_MS = 25;
+      const MUSIC_TARGET_VOLUME = 0.25;
+      const VOICE_TARGET_VOLUME = 1;
+
+      document.addEventListener('visibilitychange', function () {
+        document.title = document.hidden ? BLUR_TAB_TITLE : DEFAULT_TAB_TITLE;
+      });
+
+      let showingHint = false;
+
+      function playKeySound() {
+        if (keySound.readyState >= 2) {
+          keySound.volume = 0.3;
+          keySound.currentTime = 0;
+          keySound.play().catch(function () {});
+        }
+      }
+
+      function showWrong() {
+        wrongMsg.textContent = 'Wrong Password. Hint?';
+        wrongMsg.classList.add('wrong-msg');
+        wrongMsg.setAttribute('aria-label', 'Wrong password. Click for hint.');
+        showingHint = false;
+      }
+
+      function showHint() {
+        wrongMsg.textContent = 'Hint: The day we got together (DD/M/YYYY)';
+        wrongMsg.setAttribute('aria-label', 'Hint: The day we got together (DD/M/YYYY)');
+        showingHint = true;
+      }
+
+      function hideMessage() {
+        wrongMsg.textContent = '';
+        wrongMsg.removeAttribute('aria-label');
+      }
+
+      wrongMsg.addEventListener('click', function () {
+        if (!wrongMsg.textContent) return;
+        if (showingHint) return;
+        showHint();
+      });
+
+      wrongMsg.addEventListener('keydown', function (e) {
+        if (e.key !== 'Enter' && e.key !== ' ') return;
+        e.preventDefault();
+        if (!wrongMsg.textContent) return;
+        if (showingHint) return;
+        showHint();
+      });
+
+      var lastPasswordLen = 0;
+      passwordInput.addEventListener('input', function () {
+        var len = passwordInput.value.length;
+        var diff = Math.abs(len - lastPasswordLen);
+        if (diff > 0) {
+          for (var i = 0; i < diff; i++) {
+            (function (j) {
+              setTimeout(function () {
+                playKeySound();
+              }, j * 45);
+            })(i);
+          }
+        }
+        lastPasswordLen = len;
+        hideMessage();
+      });
+
+      function checkPassword() {
+        const value = passwordInput.value.trim();
+        if (PASSWORD_OPTIONS.indexOf(value) === -1) {
+          showWrong();
+          return;
+        }
+        popBox.classList.add('fade-out');
+        setTimeout(function () {
+          successHeart.classList.add('visible');
+          successHeart.setAttribute('aria-hidden', 'false');
+          startFlashSequence();
+        }, 400);
+      }
+
+      document.getElementById('passwordForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        checkPassword();
+      });
+
+      /* Cursor glow */
+      document.addEventListener('mousemove', function (e) {
+        cursorGlow.style.left = e.clientX + 'px';
+        cursorGlow.style.top = e.clientY + 'px';
+      });
+
+      /* Heart snow */
+      const heart = '\u2665';
+      const count = Math.min(35, Math.floor((window.innerWidth * window.innerHeight) / 18000));
+      const frag = document.createDocumentFragment();
+      for (let i = 0; i < count; i++) {
+        const el = document.createElement('span');
+        el.className = 'heart-flake';
+        el.textContent = heart;
+        el.style.left = Math.random() * 100 + '%';
+        el.style.animationDuration = (8 + Math.random() * 10) + 's';
+        el.style.animationDelay = -Math.random() * 15 + 's';
+        frag.appendChild(el);
+      }
+      snowWrap.appendChild(frag);
+
+      /* Scale ASCII title to fit inside pop box */
+      var asciiWrap = document.querySelector('.ascii-title-wrap');
+      var asciiTitle = document.querySelector('.ascii-title');
+      function fitAsciiTitle() {
+        if (!asciiWrap || !asciiTitle) return;
+        asciiTitle.style.transform = '';
+        var wrapW = asciiWrap.offsetWidth;
+        var preW = asciiTitle.offsetWidth;
+        var preH = asciiTitle.offsetHeight;
+        if (preW <= 0) return;
+        var scale = Math.min(1, (wrapW - 4) / preW);
+        asciiTitle.style.transform = 'translateX(-50%) scale(' + scale + ')';
+        asciiWrap.style.minHeight = preH * scale + 'px';
+      }
+      fitAsciiTitle();
+      window.addEventListener('resize', fitAsciiTitle);
+
+      /* Flash, orbit, pages, modal */
+      var ANNIVERSARY_DATE = new Date(2025, 1, 25);
+      var MIN_FLASHES = 3;
+      var FLASH_MS = 700;
+      var successHeartPre = document.querySelector('.success-heart-art');
+      var skipFlashBtn = document.getElementById('skipFlashBtn');
+      var orbitHub = document.getElementById('orbitHub');
+      var yearRangeText = document.getElementById('yearRangeText');
+      var countdownText = document.getElementById('countdownText');
+      var navPrev = document.getElementById('navPrev');
+      var navNext = document.getElementById('navNext');
+      var fileModalBackdrop = document.getElementById('fileModalBackdrop');
+      var fileModalTitle = document.getElementById('fileModalTitle');
+      var fileModalList = document.getElementById('fileModalList');
+      var fileModalViewer = document.getElementById('fileModalViewer');
+      var viewerContent = document.getElementById('viewerContent');
+      var viewerBackBtn = document.getElementById('viewerBackBtn');
+      var fileModalClose = document.getElementById('fileModalClose');
+
+      function yearsSinceAnniversary() {
+        var now = new Date();
+        var start = new Date(ANNIVERSARY_DATE.getFullYear(), ANNIVERSARY_DATE.getMonth(), ANNIVERSARY_DATE.getDate());
+        var years = now.getFullYear() - start.getFullYear();
+        if (now.getMonth() < start.getMonth() || (now.getMonth() === start.getMonth() && now.getDate() < start.getDate())) years--;
+        return Math.max(0, years);
+      }
+
+      function getTotalPages() {
+        var y = yearsSinceAnniversary();
+        return Math.max(1, y + 1);
+      }
+
+      function getPageYearRange(pageIndex) {
+        var startYear = 2025 + pageIndex;
+        return { start: startYear, end: startYear + 1 };
+      }
+
+      function isCountdownPage(pageIndex) {
+        return pageIndex === getTotalPages() - 1;
+      }
+
+      var currentPageIndex = 0;
+      var flashTimeoutId = null;
+      var flashSkipped = false;
+      var currentSongIndex = -1;
+      var songHistory = [];
+      var songHistoryPos = -1;
+      var shouldResumeMusicAfterVoice = false;
+
+      function stopFadeTimer(media) {
+        if (media && media.__fadeTimer) {
+          clearInterval(media.__fadeTimer);
+          media.__fadeTimer = null;
+        }
+      }
+
+      function fadeToVolume(media, targetVolume, durationMs, onDone) {
+        if (!media) return;
+        stopFadeTimer(media);
+        var target = Math.max(0, Math.min(1, targetVolume));
+        var start = Number.isFinite(media.volume) ? media.volume : 1;
+        var steps = Math.max(1, Math.round(durationMs / AUDIO_FADE_STEP_MS));
+        var step = 0;
+        media.__fadeTimer = setInterval(function () {
+          step++;
+          var t = step / steps;
+          media.volume = start + (target - start) * t;
+          if (step >= steps) {
+            stopFadeTimer(media);
+            media.volume = target;
+            if (onDone) onDone();
+          }
+        }, AUDIO_FADE_STEP_MS);
+      }
+
+      function fadeInAndPlay(media, targetVolume, durationMs) {
+        if (!media) return;
+        stopFadeTimer(media);
+        media.volume = 0;
+        media.play().catch(function () {});
+        fadeToVolume(media, targetVolume, durationMs);
+      }
+
+      function fadeOutAndPause(media, durationMs, onDone) {
+        if (!media) return;
+        if (media.paused) {
+          if (onDone) onDone();
+          return;
+        }
+        fadeToVolume(media, 0, durationMs, function () {
+          media.pause();
+          if (onDone) onDone();
+        });
+      }
+
+      function attachAutoFadeOutNearEnd(media) {
+        if (!media || media.__endFadeAttached) return;
+        media.__endFadeAttached = true;
+        media.__endFadeActive = false;
+        media.addEventListener('play', function () {
+          media.__endFadeActive = false;
+        });
+        media.addEventListener('seeking', function () {
+          media.__endFadeActive = false;
+        });
+        media.addEventListener('loadedmetadata', function () {
+          media.__endFadeActive = false;
+        });
+        media.addEventListener('timeupdate', function () {
+          if (media.paused || !Number.isFinite(media.duration) || media.duration <= 0) return;
+          var remainingMs = (media.duration - media.currentTime) * 1000;
+          if (remainingMs <= AUDIO_FADE_MS && !media.__endFadeActive) {
+            media.__endFadeActive = true;
+            fadeToVolume(media, 0, Math.max(80, remainingMs));
+          }
+        });
+      }
+
+      function pickRandomSongIndex() {
+        if (MUSIC_PLAYLIST.length <= 1) return 0;
+        var next = currentSongIndex;
+        while (next === currentSongIndex) {
+          next = Math.floor(Math.random() * MUSIC_PLAYLIST.length);
+        }
+        return next;
+      }
+
+      function updateMusicButtons() {
+        if (!musicPrevBtn || !musicNextBtn) return;
+        var hasSongs = MUSIC_PLAYLIST.length > 0;
+        musicPrevBtn.disabled = !hasSongs || songHistoryPos <= 0;
+        musicNextBtn.disabled = !hasSongs;
+      }
+
+      function playSongAtIndex(songIndex, addToHistory) {
+        if (!musicPlayer || MUSIC_PLAYLIST.length === 0) return;
+        currentSongIndex = songIndex;
+        musicPlayer.src = MUSIC_PLAYLIST[currentSongIndex];
+        if (addToHistory) {
+          songHistory = songHistory.slice(0, songHistoryPos + 1);
+          songHistory.push(songIndex);
+          songHistoryPos = songHistory.length - 1;
+        }
+        updateMusicButtons();
+        fadeInAndPlay(musicPlayer, MUSIC_TARGET_VOLUME, AUDIO_FADE_MS);
+      }
+
+      function playRandomSong() {
+        if (!musicPlayer || MUSIC_PLAYLIST.length === 0) return;
+        playSongAtIndex(pickRandomSongIndex(), true);
+      }
+
+      function playPrevSong() {
+        if (songHistoryPos <= 0) return;
+        songHistoryPos--;
+        playSongAtIndex(songHistory[songHistoryPos], false);
+      }
+
+      function playNextSong() {
+        if (!musicPlayer || MUSIC_PLAYLIST.length === 0) return;
+        if (songHistoryPos < songHistory.length - 1) {
+          songHistoryPos++;
+          playSongAtIndex(songHistory[songHistoryPos], false);
+          return;
+        }
+        playRandomSong();
+      }
+
+      function startMusicPlayer() {
+        if (!musicPlayerWrap || !musicPlayer || !musicPlayerEmpty) return;
+        musicPlayerWrap.classList.add('visible');
+        if (MUSIC_PLAYLIST.length === 0) {
+          musicPlayer.style.display = 'none';
+          musicPlayerEmpty.style.display = 'block';
+          updateMusicButtons();
+          return;
+        }
+        musicPlayer.style.display = 'block';
+        musicPlayerEmpty.style.display = 'none';
+        if (songHistory.length === 0) {
+          playRandomSong();
+        } else {
+          playSongAtIndex(songHistory[songHistoryPos], false);
+        }
+      }
+
+      if (musicPlayer) {
+        musicPlayer.volume = MUSIC_TARGET_VOLUME;
+        attachAutoFadeOutNearEnd(musicPlayer);
+        musicPlayer.addEventListener('ended', function () {
+          playNextSong();
+        });
+      }
+
+      if (musicPrevBtn) {
+        musicPrevBtn.addEventListener('click', function () {
+          playPrevSong();
+        });
+      }
+
+      if (musicNextBtn) {
+        musicNextBtn.addEventListener('click', function () {
+          playNextSong();
+        });
+      }
+
+      function startFlashSequence() {
+        successHeart.classList.add('visible');
+        successHeart.classList.remove('pre-orbit');
+        successHeart.style.pointerEvents = '';
+        var count = Math.max(MIN_FLASHES, yearsSinceAnniversary());
+        flashSkipped = false;
+        skipFlashBtn.classList.add('visible');
+
+        var step = 0;
+        var totalSteps = 2 * count;
+        function doFlash() {
+          if (flashSkipped) return;
+          if (step >= totalSteps) {
+            skipFlashBtn.classList.remove('visible');
+            successHeartPre.classList.remove('flash-off');
+            doExplodeThenOrbit();
+            return;
+          }
+          successHeartPre.classList.toggle('flash-off', step % 2 === 1);
+          step++;
+          flashTimeoutId = setTimeout(doFlash, FLASH_MS);
+        }
+        successHeartPre.classList.remove('flash-off');
+        doFlash();
+      }
+
+      skipFlashBtn.addEventListener('click', function () {
+        if (flashTimeoutId) clearTimeout(flashTimeoutId);
+        flashTimeoutId = null;
+        flashSkipped = true;
+        skipFlashBtn.classList.remove('visible');
+        successHeartPre.classList.remove('flash-off');
+        doExplodeThenOrbit();
+      });
+
+      function doExplodeThenOrbit() {
+        successHeartPre.classList.add('explode');
+        startMusicPlayer();
+        setTimeout(function () {
+          successHeart.classList.remove('visible');
+          successHeart.classList.add('pre-orbit');
+          successHeartPre.classList.remove('explode');
+          orbitHub.classList.add('visible');
+          currentPageIndex = 0;
+          updatePageContent();
+          updateNavButtons();
+          startOrbitAnimation();
+        }, 600);
+      }
+
+      var orbitRingEl = document.getElementById('orbitRing');
+      var orbitCenterWrap = document.querySelector('.orbit-center-wrapper');
+      var orbitAngle = 0;
+      var orbitLastTime = 0;
+      var orbitItemBaseAngles = [0, 90, 180, 270];
+      var orbitParallaxTargetX = 0;
+      var orbitParallaxTargetY = 0;
+      var orbitParallaxX = 0;
+      var orbitParallaxY = 0;
+      var ORBIT_PARALLAX_MAX = 8;
+
+      function tickOrbitParallax() {
+        if (!orbitCenterWrap) return;
+        orbitParallaxX += (orbitParallaxTargetX - orbitParallaxX) * 0.1;
+        orbitParallaxY += (orbitParallaxTargetY - orbitParallaxY) * 0.1;
+        orbitCenterWrap.style.setProperty('--orbit-parallax-x', orbitParallaxX.toFixed(2) + 'px');
+        orbitCenterWrap.style.setProperty('--orbit-parallax-y', orbitParallaxY.toFixed(2) + 'px');
+        requestAnimationFrame(tickOrbitParallax);
+      }
+
+      document.addEventListener('mousemove', function (e) {
+        var nx = (e.clientX / window.innerWidth) * 2 - 1;
+        var ny = (e.clientY / window.innerHeight) * 2 - 1;
+        orbitParallaxTargetX = nx * ORBIT_PARALLAX_MAX;
+        orbitParallaxTargetY = ny * ORBIT_PARALLAX_MAX;
+      });
+
+      document.addEventListener('mouseleave', function () {
+        orbitParallaxTargetX = 0;
+        orbitParallaxTargetY = 0;
+      });
+
+      tickOrbitParallax();
+
+      function startOrbitAnimation() {
+        if (!orbitRingEl) return;
+        var items = orbitRingEl.querySelectorAll('.orbit-item-inner');
+        function tick(now) {
+          if (!orbitHub.classList.contains('visible')) return;
+          orbitAngle = (orbitAngle + (now - orbitLastTime) * 0.018) % 360;
+          orbitLastTime = now;
+          orbitRingEl.style.transform = 'rotate(' + orbitAngle + 'deg)';
+          items.forEach(function (inner, i) {
+            var base = orbitItemBaseAngles[i] || 0;
+            inner.style.transform = 'rotate(' + (-(base + orbitAngle)) + 'deg)';
+          });
+          requestAnimationFrame(tick);
+        }
+        orbitLastTime = performance.now();
+        requestAnimationFrame(tick);
+      }
+
+      function countdownDays(target) {
+        var now = new Date();
+        now.setHours(0, 0, 0, 0);
+        target.setHours(0, 0, 0, 0);
+        return Math.max(0, Math.ceil((target - now) / (24 * 60 * 60 * 1000)));
+      }
+
+      function getPageCountdownTarget(pageIndex) {
+        var range = getPageYearRange(pageIndex);
+        return new Date(range.end, 1, 25);
+      }
+
+      function updatePageContent() {
+        var range = getPageYearRange(currentPageIndex);
+        var target = getPageCountdownTarget(currentPageIndex);
+        var daysLeft = countdownDays(target);
+        yearRangeText.textContent = range.start + ' - ' + range.end;
+        if (daysLeft > 0) {
+          countdownText.style.display = 'block';
+          countdownText.textContent = 'Countdown to 25/02/' + range.end + ': ' + daysLeft + ' days';
+        } else {
+          countdownText.style.display = 'none';
+          countdownText.textContent = '';
+        }
+      }
+
+      function updateNavButtons() {
+        var total = getTotalPages();
+        navPrev.disabled = currentPageIndex <= 0;
+        navNext.disabled = currentPageIndex >= total - 1;
+      }
+
+      navPrev.addEventListener('click', function () {
+        if (currentPageIndex <= 0) return;
+        currentPageIndex--;
+        updatePageContent();
+        updateNavButtons();
+      });
+
+      navNext.addEventListener('click', function () {
+        if (currentPageIndex >= getTotalPages() - 1) return;
+        currentPageIndex++;
+        updatePageContent();
+        updateNavButtons();
+      });
+
+      /*
+        FILE SETUP
+        ----------
+        Each category (Texts, Screenshots, Videos, My Anniversary Text) can have files per year range.
+        Year keys are the range that page shows: "2025-2026", "2026-2027", etc.
+
+        Structure:
+          FILE_PATHS[category][yearKey] = [
+            { name: 'Display name in the list', path: 'path/to/file.pdf' },
+            { name: 'Another file', path: 'videos/2025/clip.mp4' }
+          ];
+
+        Example if your folders look like:
+          files/
+            2025-2026/
+              texts/    -> put .txt, .pdf, etc.
+              screenshots/
+              videos/
+              anniversary/
+            2026-2027/
+              texts/
+              ...
+
+        Then you could set (paths relative to index.html or full URLs):
+      */
+      var FILE_PATHS = {
+        texts: {
+          '2025-2026': [
+            { name: 'My First Paragraph to you.', path: 'files/2025-2026/texts/myfirstparagraph.txt' },
+            { name: 'Your 1 Month Anniversarry Para.', path: 'files/2025-2026/texts/yourfirstmonthannopara.txt' },
+            { name: 'My 2 Month Anniversarry Para.', path: 'files/2025-2026/texts/mysecondmonthannopara.txt' },
+            { name: 'Your 2 Month Anniversarry Para.', path: 'files/2025-2026/texts/yoursecondmonthannopara.txt' },
+            { name: 'Your 3 Month Anniversarry Para.', path: 'files/2025-2026/texts/yourthirdmonthannopara.txt' },
+            { name: 'My 5 Month Anniversarry Para.', path: 'files/2025-2026/texts/myfifthmonthannopara.txt' },
+            { name: 'Your 5 Month Anniversarry Para.', path: 'files/2025-2026/texts/yourfifthmonthannopara.txt' },
+          ],
+          '2026-2027': []
+        },
+        screenshots: {
+          '2025-2026': [
+          { name: 'where it all started', path: 'files/2025-2026/Pictures/where_it_all_started.png' },
+          { name: 'we married lowkey', path: 'files/2025-2026/Pictures/marriage_certificate.jpeg' },
+          { name: 'letter', path: 'files/2025-2026/Pictures/letter.jpg' },
+          { name: 'Roblox', itemName: 'GOAL!', path: 'files/2025-2026/Pictures/GOAL!.png' },
+          { name: 'Roblox', itemName: 'Diva', path: 'files/2025-2026/Pictures/diva.png' },
+          { name: 'Roblox', itemName: 'U ate lowkey', path: 'files/2025-2026/Pictures/oncam.png' },
+          { name: 'Roblox', itemName: 'Tuff', path: 'files/2025-2026/Pictures/tuff.png' },
+          { name: 'Roblox', itemName: 'matching lowkey', path: 'files/2025-2026/Pictures/left_right_goodnight.png' },
+          { name: 'Fisch', itemName: 'Valentines', path: 'files/2025-2026/Pictures/valentines.png' },
+          { name: 'Fisch', itemName: 'Valentines 2', path: 'files/2025-2026/Pictures/valentines2.png' },
+          { name: 'Fisch', itemName: 'Valentines 3', path: 'files/2025-2026/Pictures/valentines3.png' },
+          { name: 'Fisch', itemName: 'Valentines 4', path: 'files/2025-2026/Pictures/valentines4.png' },
+          { name: 'Fisch', itemName: 'Cats!', path: 'files/2025-2026/Pictures/cats_kissing.png' },
+          { name: 'Fisch', itemName: 'Skippers!', path: 'files/2025-2026/Pictures/skippers_kissing.png' },
+          { name: 'Facetime', path: 'files/2025-2026/Pictures/facetime.png' },
+
+          { name: 'tuff', path: 'files/2025-2026/Pictures/tuff.png' },
+          ],
+          '2026-2027': []
+        },
+        videos: {
+          '2025-2026': [
+            { name: 'Roblox', itemName: 'Us synced on roblox lowkey', path: 'files/2025-2026/videos/lowkeysynced.mp4' },
+            { name: 'Roblox', itemName : 'lowkey nice air', path: 'files/2025-2026/videos/nice air.mov'},
+            { name: 'Mochi', itemName: 'You playing with mochi lowkey', path: 'files/2025-2026/videos/youplayingwithmochi.mov'}, 
+            { name: 'You look beautiful in this ml', path: 'files/2025-2026/videos/beautifulasfbtw.mov' },
+            { name: 'Cute burp', path: 'files/2025-2026/videos/burp.mp4'},
+            { name : 'Cute laugh!', path: 'files/2025-2026/videos/youlaughinglowkey.mov'},
+            { name : 'Stupid friggin dogs', path: 'files/2025-2026/videos/stupidfrickindogs.mov'},
+            { name : 'six seven dollars \u2620\uFE0F', path: 'files/2025-2026/videos/sixseven.mov'},
+            { name : 'I busted btw', path: 'files/2025-2026/videos/OHHHHHHHHHHHITSEVERYWHERE.mov'},
+            { name : 'Mochi', itemName: 'Mochi',  path: 'files/2025-2026/videos/mochi.mov'},
+            { name : 'Me and misk', path: 'files/2025-2026/videos/misk.mp4'},
+            { name : 'Roblox', itemName: 'FREEDOM!', path: 'files/2025-2026/videos/FREEDOMMMMMM.mov'},
+            { name : 'Roblox', itemName: 'chicken', path: 'files/2025-2026/videos/chicken.mov'},
+
+          ],
+
+          '2026-2027': []
+        },
+        anniversary: {
+          '2025-2026': [],
+          '2026-2027': []
+        }
+      };
+
+      function getYearKey() {
+        if (isCountdownPage(currentPageIndex)) return (2025 + currentPageIndex) + '-' + (2026 + currentPageIndex);
+        var r = getPageYearRange(currentPageIndex);
+        return r.start + '-' + r.end;
+      }
+
+      function getCategoryLabel(cat) {
+        if (cat === 'texts') return 'Texts';
+        if (cat === 'screenshots') return 'Screenshots';
+        if (cat === 'videos') return 'Videos';
+        if (cat === 'anniversary') return 'My Anniversary Text';
+        return cat;
+      }
+
+      var TEXT_EXT = /\.(txt|md|json|log|html?|css|js)$/i;
+      var IMAGE_EXT = /\.(png|jpe?g|gif|webp|svg|bmp)$/i;
+      var VIDEO_EXT = /\.(mp4|webm|ogg|mov|m4v)$/i;
+      var ANNIVERSARY_TEXT_FILENAME = 'textfile.txt';
+      var ANNIVERSARY_AUDIO_BY_YEAR = {
+        '2025-2026': 'files/2025-2026/yep yep.mp3'
+      };
+      var currentListTitle = 'Files';
+
+      function showFileList() {
+        viewerBackBtn.style.display = '';
+        fileModalTitle.textContent = currentListTitle;
+        fileModalList.classList.remove('hidden');
+        fileModalViewer.classList.remove('visible');
+        viewerContent.innerHTML = '';
+      }
+
+      function showViewer() {
+        fileModalList.classList.add('hidden');
+        fileModalViewer.classList.add('visible');
+      }
+
+      function openFileViewer(f) {
+        var path = f.path;
+        var name = f.name || path;
+        var ext = (path.match(/\.([^.]+)$/) || [])[1] || '';
+        fileModalTitle.textContent = name;
+        viewerBackBtn.style.display = '';
+        showViewer();
+        viewerContent.innerHTML = '';
+        viewerContent.classList.remove('text-content');
+
+        if (TEXT_EXT.test(path)) {
+          viewerContent.classList.add('text-content');
+          function showTextViaIframe() {
+            viewerContent.innerHTML = '';
+            viewerContent.classList.remove('text-content');
+            var iframe = document.createElement('iframe');
+            iframe.src = path;
+            iframe.style.cssText = 'width:100%;min-height:200px;height:100%;border:none;background:rgba(0,0,0,0.3);border-radius:8px;';
+            viewerContent.appendChild(iframe);
+          }
+          if (window.location.protocol === 'file:') {
+            showTextViaIframe();
+            return;
+          }
+          viewerContent.textContent = 'Loading...';
+          fetch(path)
+            .then(function (r) { return r.ok ? r.text() : Promise.reject(new Error(r.status)); })
+            .then(function (text) {
+              viewerContent.textContent = text;
+            })
+            .catch(function () {
+              showTextViaIframe();
+            });
+          return;
+        }
+
+        if (IMAGE_EXT.test(path)) {
+          var img = document.createElement('img');
+          img.src = path;
+          img.alt = name;
+          img.onerror = function () { viewerContent.innerHTML = '<p style="color:#888;">Could not load image.</p>'; };
+          viewerContent.appendChild(img);
+          return;
+        }
+
+        if (VIDEO_EXT.test(path)) {
+          var video = document.createElement('video');
+          video.controls = true;
+          video.src = path;
+          wireMediaMusicPauseBehavior(video);
+          video.onerror = function () { viewerContent.innerHTML = '<p style="color:#888;">Could not load video.</p>'; };
+          viewerContent.appendChild(video);
+          return;
+        }
+
+        viewerContent.innerHTML = '<p style="color:#888;">Preview not available. <a href="' + path + '" target="_blank" rel="noopener" style="color:var(--heart-red);">Open in new tab</a></p>';
+      }
+
+      function getAnniversaryTextPath(yearKey) {
+        return 'files/' + yearKey + '/' + ANNIVERSARY_TEXT_FILENAME;
+      }
+
+      function getAnniversaryAudioPath(yearKey) {
+        return ANNIVERSARY_AUDIO_BY_YEAR[yearKey] || '';
+      }
+
+      function appendAnniversaryAudio(container, audioPath) {
+        var audioWrap = document.createElement('div');
+        audioWrap.className = 'anniversary-audio-wrap';
+
+        var audioLabel = document.createElement('span');
+        audioLabel.className = 'anniversary-audio-label';
+        audioLabel.textContent = 'Voice recording';
+        audioWrap.appendChild(audioLabel);
+
+        if (!audioPath) {
+          var emptyMsg = document.createElement('p');
+          emptyMsg.style.color = '#888';
+          emptyMsg.textContent = 'No audio file added yet.';
+          audioWrap.appendChild(emptyMsg);
+        } else {
+          var audio = document.createElement('audio');
+          audio.controls = true;
+          audio.preload = 'metadata';
+          audio.src = audioPath;
+          audio.volume = 0;
+          attachAutoFadeOutNearEnd(audio);
+          wireMediaMusicPauseBehavior(audio, true);
+
+          audio.onerror = function () {
+            audioWrap.innerHTML = '<span class="anniversary-audio-label">Voice recording</span><p style="color:#888;">Could not load audio file.</p>';
+          };
+          audioWrap.appendChild(audio);
+        }
+
+        container.appendChild(audioWrap);
+      }
+
+      function resumeMusicAfterForegroundMedia() {
+        if (!musicPlayer || MUSIC_PLAYLIST.length === 0 || !musicPlayer.src) return;
+        fadeInAndPlay(musicPlayer, MUSIC_TARGET_VOLUME, AUDIO_FADE_MS);
+      }
+
+      function wireMediaMusicPauseBehavior(media, withVoiceFadeIn) {
+        if (!media || media.__musicPauseWired) return;
+        media.__musicPauseWired = true;
+        media.__pausedMusic = false;
+
+        media.addEventListener('play', function () {
+          if (withVoiceFadeIn) fadeToVolume(media, VOICE_TARGET_VOLUME, AUDIO_FADE_MS);
+          if (musicPlayer && !musicPlayer.paused) {
+            media.__pausedMusic = true;
+            shouldResumeMusicAfterVoice = true;
+            fadeOutAndPause(musicPlayer, AUDIO_FADE_MS);
+          }
+        });
+
+        media.addEventListener('pause', function () {
+          if (!media.__pausedMusic) return;
+          media.__pausedMusic = false;
+          shouldResumeMusicAfterVoice = false;
+          resumeMusicAfterForegroundMedia();
+        });
+
+        media.addEventListener('ended', function () {
+          if (!media.__pausedMusic) return;
+          media.__pausedMusic = false;
+          shouldResumeMusicAfterVoice = false;
+          resumeMusicAfterForegroundMedia();
+        });
+      }
+
+      function getAlbumItemLabel(fileEntry, index) {
+        if (fileEntry.itemName) return fileEntry.itemName;
+        if (fileEntry.variantName) return fileEntry.variantName;
+        if (fileEntry.path) {
+          var parts = fileEntry.path.split(/[\\/]/);
+          var last = parts[parts.length - 1];
+          if (last) return last;
+        }
+        return 'File ' + (index + 1);
+      }
+
+      function buildAlbumGroups(list) {
+        var groupsByKey = {};
+        list.forEach(function (fileEntry) {
+          var rawName = String(fileEntry.name || fileEntry.path || '').trim();
+          var key = rawName.toLowerCase();
+          if (!groupsByKey[key]) {
+            groupsByKey[key] = {
+              name: rawName,
+              files: []
+            };
+          }
+          groupsByKey[key].files.push(fileEntry);
+        });
+        return Object.keys(groupsByKey).map(function (k) { return groupsByKey[k]; });
+      }
+
+      function openAlbumPicker(albumGroup) {
+        fileModalTitle.textContent = albumGroup.name + ' - Album';
+        showViewer();
+        viewerBackBtn.style.display = '';
+        viewerContent.innerHTML = '';
+
+        var wrapper = document.createElement('div');
+        wrapper.className = 'album-file-list';
+        albumGroup.files.forEach(function (fileEntry, idx) {
+          var pickBtn = document.createElement('button');
+          pickBtn.type = 'button';
+          pickBtn.className = 'album-file-item';
+          pickBtn.textContent = getAlbumItemLabel(fileEntry, idx);
+          pickBtn.addEventListener('click', function () { openFileViewer(fileEntry); });
+          wrapper.appendChild(pickBtn);
+        });
+        viewerContent.appendChild(wrapper);
+      }
+
+      function openAnniversaryView(yearKey, rangeLabel) {
+        var textPath = getAnniversaryTextPath(yearKey);
+        var audioPath = getAnniversaryAudioPath(yearKey);
+        currentListTitle = getCategoryLabel('anniversary') + ' · ' + rangeLabel;
+        fileModalTitle.textContent = currentListTitle;
+        showViewer();
+        viewerBackBtn.style.display = 'none';
+        viewerContent.innerHTML = '';
+        viewerContent.classList.remove('text-content');
+
+        var textBlock = document.createElement('div');
+        textBlock.className = 'anniversary-text-content';
+        textBlock.textContent = 'Loading...';
+        viewerContent.appendChild(textBlock);
+
+        appendAnniversaryAudio(viewerContent, audioPath);
+
+        function showTextViaIframe() {
+          textBlock.textContent = '';
+          var iframe = document.createElement('iframe');
+          iframe.src = textPath;
+          iframe.style.cssText = 'width:100%;min-height:260px;height:260px;border:none;background:rgba(0,0,0,0.3);border-radius:8px;';
+          textBlock.appendChild(iframe);
+        }
+
+        if (window.location.protocol === 'file:') {
+          showTextViaIframe();
+          return;
+        }
+
+        fetch(textPath)
+          .then(function (r) { return r.ok ? r.text() : Promise.reject(new Error(r.status)); })
+          .then(function (text) {
+            textBlock.textContent = text;
+          })
+          .catch(function () {
+            showTextViaIframe();
+          });
+      }
+
+      viewerBackBtn.addEventListener('click', showFileList);
+
+      orbitHub.querySelectorAll('.orbit-item').forEach(function (btn) {
+        btn.addEventListener('click', function () {
+          var cat = btn.getAttribute('data-category');
+          var yearKey = getYearKey();
+          var rangeLabel = yearRangeText.textContent;
+          if (cat === 'anniversary') {
+            openAnniversaryView(yearKey, rangeLabel);
+            fileModalBackdrop.classList.add('visible');
+            return;
+          }
+          currentListTitle = getCategoryLabel(cat) + ' - ' + rangeLabel;
+          fileModalTitle.textContent = currentListTitle;
+          var list = (FILE_PATHS[cat] && FILE_PATHS[cat][yearKey]) ? FILE_PATHS[cat][yearKey] : [];
+          var groups = buildAlbumGroups(list);
+          fileModalList.innerHTML = '';
+          fileModalList.classList.remove('hidden');
+          fileModalViewer.classList.remove('visible');
+          if (list.length === 0) {
+            fileModalList.innerHTML = '<p style="color:#888;">No files yet. Add folder paths in the code and place files in the right folders.</p>';
+          } else {
+            groups.forEach(function (group) {
+              var btn = document.createElement('button');
+              btn.type = 'button';
+              btn.className = 'file-item';
+              if (group.files.length > 1) {
+                btn.textContent = group.name + ' (Album)';
+                btn.addEventListener('click', function () { openAlbumPicker(group); });
+              } else {
+                btn.textContent = group.name || group.files[0].path;
+                btn.addEventListener('click', function () { openFileViewer(group.files[0]); });
+              }
+              fileModalList.appendChild(btn);
+            });
+          }
+          fileModalBackdrop.classList.add('visible');
+        });
+      });
+
+      fileModalClose.addEventListener('click', function () {
+        fileModalBackdrop.classList.remove('visible');
+        showFileList();
+      });
+
+      fileModalBackdrop.addEventListener('click', function (e) {
+        if (e.target === fileModalBackdrop) fileModalBackdrop.classList.remove('visible');
+      });
+    })();
+  </script>
+</body>
+</html>
+
+
+
